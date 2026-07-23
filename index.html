@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<!-- Mobil cihazlarda kusursuz ölçekleme ve gereksiz yakınlaştırmayı engelleme -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Tunahan KIZILKAYA - Dijital Kartvizit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #030507;
+    --surface: #0c1116;
+    --surface-2: #141b22;
+    --border: rgba(255,255,255,0.08);
+    --border-strong: rgba(255,255,255,0.14);
+    --text: #eef2f6;
+    --text-dim: #8d99a6;
+    --text-faint: #57626d;
+    --core: #57d9f2;
+    --core-soft: rgba(87,217,242,0.18);
+    --coriolis: #b9c3ce;
+    --coriolis-soft: rgba(185,195,206,0.14);
+    --ocean: #1c4c78;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body { 
+    height: 100%; 
+    /* Mobilde kaydırma sırasında sıçramaları önler */
+    overscroll-behavior-y: none; 
+  }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background:
+      radial-gradient(circle at 22% 18%, var(--coriolis-soft), transparent 42%),
+      radial-gradient(circle at 78% 82%, var(--core-soft), transparent 42%),
+      var(--bg);
+    position: relative;
+    /* Ekrana göre dinamik iç boşluk */
+    padding: clamp(16px, 4vw, 24px);
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: radial-gradient(rgba(255,255,255,0.045) 1px, transparent 1px);
+    background-size: 24px 24px;
+    pointer-events: none;
+    mask-image: radial-gradient(circle at 50% 45%, black, transparent 75%);
+    -webkit-mask-image: radial-gradient(circle at 50% 45%, black, transparent 75%);
+  }
+
+  .card {
+    position: relative;
+    z-index: 1;
+    background: linear-gradient(180deg, var(--surface), var(--surface-2));
+    border: 1px solid var(--border);
+    border-radius: 26px;
+    /* İç boşluklar ekran boyutuna göre dinamik daralır */
+    padding: clamp(28px, 6vw, 36px) clamp(20px, 5vw, 30px) clamp(24px, 5vw, 30px);
+    width: 100%;
+    max-width: 340px;
+    text-align: center;
+    box-shadow:
+      0 30px 60px -20px rgba(0,0,0,0.6),
+      0 0 0 1px rgba(255,255,255,0.02);
+  }
+
+  .eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.14em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 26px;
+  }
+  .eyebrow::before, .eyebrow::after {
+    content: '';
+    height: 1px;
+    width: 22px;
+    background: var(--border-strong);
+  }
+
+  /* 3D sahnesi artık ekrana göre esneyebiliyor */
+  .card-flip-scene {
+    width: 100%;
+    max-width: 230px;
+    aspect-ratio: 3281 / 1875;
+    margin: 0 auto 24px;
+    perspective: 900px;
+    border-radius: 11px;
+  }
+  .card-flip-scene:focus-visible {
+    outline: 2px solid var(--coriolis);
+    outline-offset: 4px;
+  }
+
+  .card-flip {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+    animation:
+      cardflip 7s cubic-bezier(.65,0,.35,1) infinite,
+      glowpulse 3.4s ease-in-out infinite;
+    border-radius: 11px;
+  }
+
+  @keyframes glowpulse {
+    0%, 100% {
+      box-shadow:
+        0 0 0 1px var(--border-strong),
+        0 14px 30px -12px rgba(0,0,0,0.75),
+        0 0 20px -4px rgba(87,217,242,0.4);
+    }
+    50% {
+      box-shadow:
+        0 0 0 1px rgba(87,217,242,0.4),
+        0 14px 30px -12px rgba(0,0,0,0.75),
+        0 0 34px -2px rgba(87,217,242,0.75);
+    }
+  }
+
+  /* Dokunmatik ekranlarda animasyonu durdurma desteği */
+  .card-flip-scene:hover .card-flip,
+  .card-flip-scene:focus-within .card-flip,
+  .card-flip-scene:active .card-flip {
+    animation-play-state: paused;
+  }
+
+  .card-face {
+    position: absolute;
+    inset: 0;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    border-radius: 11px;
+    overflow: hidden;
+    background: #000;
+  }
+  .card-face img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+  }
+  .card-face.back {
+    transform: rotateY(180deg);
+  }
+
+  @keyframes cardflip {
+    0%, 38%   { transform: rotateY(0deg); }
+    50%, 88%  { transform: rotateY(180deg); }
+    100%      { transform: rotateY(360deg); }
+  }
+
+  h1 {
+    font-family: 'Space Grotesk', sans-serif;
+    /* Ekran küçüldüğünde yazı boyutu otomatik ufalar */
+    font-size: clamp(20px, 6vw, 23px);
+    font-weight: 600;
+    color: var(--text);
+    margin: 0 0 8px;
+    letter-spacing: -0.01em;
+  }
+
+  .role-line {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: clamp(10px, 3vw, 11px);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin: 0 0 4px;
+  }
+
+  .org-line {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: clamp(10px, 3vw, 11px);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--core);
+    text-shadow: 0 0 12px rgba(87,217,242,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    margin: 0 0 30px;
+  }
+  .org-line::before {
+    content: '';
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--core);
+    box-shadow: 0 0 8px rgba(87,217,242,0.85);
+    flex: none;
+  }
+
+  .btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 14px 20px;
+    background: linear-gradient(135deg, var(--ocean), var(--core));
+    color: #04141c;
+    text-decoration: none;
+    border-radius: 13px;
+    font-weight: 600;
+    font-size: 15.5px;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 10px 26px -8px rgba(87,217,242,0.5);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    /* Mobilde dokunma alanını genişletmek için */
+    min-height: 48px; 
+  }
+  
+  .btn:active { transform: translateY(1px) scale(0.98); }
+  .btn:focus-visible { outline: 2px solid var(--coriolis); outline-offset: 3px; }
+
+  .caption {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin: 12px 0 22px;
+  }
+
+  .links {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+  }
+
+  .icon-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    text-decoration: none;
+    transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease, transform 0.1s;
+  }
+  .icon-link:active { transform: scale(0.95); }
+  .icon-link:focus-visible { outline: 2px solid var(--coriolis); outline-offset: 2px; }
+  .icon-link svg { width: 19px; height: 19px; }
+
+  /* Sadece mouse kullanılan cihazlar (Bilgisayarlar) için Hover Efektleri
+     Bu, mobilde butonların hover efektinde "takılı kalmasını" engeller */
+  @media (hover: hover) and (pointer: fine) {
+    .btn:hover { box-shadow: 0 12px 30px -6px rgba(87,217,242,0.65); }
+    .icon-link:hover {
+      border-color: var(--core);
+      color: var(--core);
+      background: rgba(87,217,242,0.1);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .card-flip { animation: none; }
+  }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="eyebrow">Dijital Kartvizit</div>
+
+    <div class="card-flip-scene" tabindex="0" aria-label="Coriolis Core kartvizit, ön ve arka yüz dönüyor">
+      <div class="card-flip">
+        <div class="card-face front">
+          <img src="13.png" alt="Kartvizit ön yüzü: Tunahan KIZILKAYA, Hemşire">
+        </div>
+        <div class="card-face back">
+          <img src="14.png" alt="Kartvizit arka yüzü: Coriolis Core logosu">
+        </div>
+      </div>
+    </div>
+
+    <h1>Tunahan KIZILKAYA</h1>
+    <p class="role-line">Hemşire &middot; CO-FOUNDER</p>
+    <p class="org-line">CORIOLIS CORE</p>
+
+    <button onclick="downloadVCard()" class="btn">
+      Kişilere Ekle
+    </button>
+    <p class="caption"></p>
+
+    <div class="links">
+      <a class="icon-link" href="https://www.instagram.com/tunahan_kizilkaya?igsh=MW1xbzR6N3drb3o4bQ==" target="_blank" rel="noopener" aria-label="Instagram profili">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+          <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+          <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+        </svg>
+      </a>
+      
+    </div>
+  </div>
+
+  <script>
+    function downloadVCard() {
+      var vcardText =
+        "BEGIN:VCARD\r\n" +
+        "VERSION:3.0\r\n" +
+        "N:KIZILKAYA;Tunahan;;;\r\n" +
+        "FN:Tunahan KIZILKAYA\r\n" +
+        "ORG:Coriolis Core\r\n" +
+        "TITLE:Hemşire & Co-Founder\r\n" +
+        "TEL;TYPE=CELL:05443554253\r\n" +
+        "EMAIL:tunahankizilkaya055@gmail.com\r\n" +
+        "item1.URL:https://www.instagram.com/tunahan_kizilkaya?igsh=MW1xbzR6N3drb3o4bQ==\r\n" +
+        "item1.X-ABLabel:Instagram\r\n" +
+        "END:VCARD";
+      var blob = new Blob([vcardText], { type: 'text/vcard;charset=utf-8' });
+      var url = window.URL.createObjectURL(blob);
+
+      var a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = 'Tunahan_Kizilkaya.vcf';
+
+      document.body.appendChild(a);
+      a.click();
+
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    }
+  </script>
+</body>
+</html>
